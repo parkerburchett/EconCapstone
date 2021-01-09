@@ -27,17 +27,27 @@ https://api.etherscan.io/api?module=account&action=txlist&address=0xCeB4d0CA8214
 This is not working and I don't know why
 
 
+https://ethplorer.io/
+
+
+
 """
+
+
+# proper command https://api.ethplorer.io/getAddressTransactions/0xb297cacf0f91c86dd9d2fb47c6d12783121ab780?apiKey=freekey
+# there are limits on the amount you can query from this. I might need to use a larger one once.
+# https://docs.ethplorer.io/monitor?from=apiDocs#section/Balances-and-rawBalances-fields-explanation/balances-in-getPoolLastOperations
+
 
 import json
 
-my_json = open('fromAPI.json')
+my_json = open('ethan_via_ethplorer.json')
 trans =json.load(my_json)
 
-single = trans['result']
+
 my_json.close()
 
-s =single[6]
+
 
 
 print('fin')

@@ -51,6 +51,16 @@ Bob's avg Gh/s  for that day = (Bob's coins) /(all coins) * (global GH/s)
 
 
 
+Note this is wrong somehow, I don't know why.
+
+Need a way to infer work (Gh/s) from coins paid.
+
+The ratio between bob's coins: all coins ought to  = the ratio bewenen bob's work and all work.
+
+I don't know why it is not. I must be missing something
+
+
+
 
 
 

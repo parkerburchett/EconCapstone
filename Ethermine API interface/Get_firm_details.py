@@ -26,6 +26,11 @@ def get_payouts_command(miner_address):
     command = '{}/miner/:{}/payouts'.format(endpoint, miner_address)
     return command
 
+def get_workers_command(miner_address):
+    endpoint = 'https://api.ethermine.org'
+    command = '{}/miner/:{}/workers'.format(endpoint, miner_address)
+    return command
+
 def get_data_from_command(command):
     """
 
@@ -55,16 +60,14 @@ def convert_payouts_into_human_readable(payouts):
 
 ethan ='CeB4d0CA821420Cf2553b9e244F6B52364613F94'
 big_random_miner = '969aE8B1708E825570a1bBF4C9C7D2FC7382BadD'
-
-command = get_payouts_command(big_random_miner)
-my_data =get_data_from_command(command)
-
-
-
-simple_payments = convert_payouts_into_human_readable(my_data)
-
-for i in simple_payments:
-    print(i)
+#
+# command = get_payouts_command(big_random_miner)
+# my_data =get_data_from_command(command)
+# simple_payments = convert_payouts_into_human_readable(my_data)
 
 
+w_command = get_workers_command(big_random_miner)
+list_of_workers =get_data_from_command(w_command)
+
+# {'worker': '0030180db667', 'time': 1610412600, 'lastSeen': 1610412561, 'reportedHashrate': 243666806, 'currentHashrate': 208833333.33333334, 'validShares': 186, 'invalidShares': 0, 'staleShares': 3, 'averageHashrate': 241443672.83950615}
 print('fin')

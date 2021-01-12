@@ -54,7 +54,7 @@ def convert_payouts_into_human_readable(payouts):
     """
     simple_payments =[]
     for p in payouts:
-        amount_ether = Data_Cleaning.convert_wei_to_ether(p['amount'])
+        amount_ether = Data_Cleaning.convert_wei_to_ether(p['amount']) # might be wrong
         payment_date = Data_Cleaning.convert_unix_to_standard_date(p['paidOn'])
         simple_payments.append((payment_date,amount_ether))
 
@@ -83,9 +83,9 @@ def parse_worker_data(workers):
 ethan ='CeB4d0CA821420Cf2553b9e244F6B52364613F94'
 big_random_miner = '969aE8B1708E825570a1bBF4C9C7D2FC7382BadD'
 
-# command = get_payouts_command(big_random_miner)
-# my_data =get_data_from_command(command)
-# simple_payments = convert_payouts_into_human_readable(my_data)
+command = get_payouts_command(big_random_miner)
+my_data = get_data_from_command(command)
+simple_payments = convert_payouts_into_human_readable(my_data)
 
 
 w_command = get_workers_command(big_random_miner)

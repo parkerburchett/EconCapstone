@@ -18,8 +18,6 @@ from utils import Data_Cleaning
 # to go from base units (Wei into ether * 10^18)
 
 
-
-
 def get_payouts_command(miner_address):
     """
 
@@ -39,7 +37,7 @@ def get_data_from_command(command):
     """
 
     :param command: This is a string of the request of the command
-    :return: a dic
+    :return: the data in the command. This ought to be renamed to work with just payment_data.
     """
     response = requests.get(command)
     my_dict = json.loads(response.text)

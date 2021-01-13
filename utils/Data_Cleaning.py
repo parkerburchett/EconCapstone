@@ -10,7 +10,7 @@ def convert_wei_to_ether(amount_wei):
 
 def convert_unix_to_standard_date(unix_time):
     unix_time = int(unix_time)
-    standard_date = datetime.datetime.fromtimestamp(unix_time).date() # I only care about the date. I am choosing to ingore data about the time
+    standard_date = datetime.datetime.fromtimestamp(unix_time)
     return standard_date
 
 def convert_hashes_to_mega_hashes(hashes):

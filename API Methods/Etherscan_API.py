@@ -10,12 +10,13 @@ from utils import Data_Cleaning
 my_json = open('etherScan_apiKey.json') # this gets my private API key for Ethermine.org.
 etherscan_api_key =json.load(my_json)['key']
 my_json.close()
-
-
 # these are some wallet addresses to test on
 ethan = '0xCeB4d0CA821420Cf2553b9e244F6B52364613F94'
 big_random_miner = '0xdd619667be721974a21b22bf5e7d54e51adf9c01'
 ethermine_wallet = '0xea674fdde714fd979de3edf0f56aa9716b898ec8'
+
+
+# you need to write a method to stitch these together to call outside of the method.
 
 def get_normal_transactions_command(miner_address, start_block=0, end_block=99999999):
     """

@@ -9,7 +9,7 @@ from utils import Data_Cleaning
 
 
 # for an unknown reason you need
-my_json = open('C:\Users\parke\Documents\GitHub\EconCapstone\API_Methods\etherScan_apiKey.json') # this gets my private API key for Ethermine.org.
+my_json = open(r'C:\Users\parke\Documents\GitHub\EconCapstone\API_Methods\etherScan_apiKey.json') # this gets my private API key for Ethermine.org.
 etherscan_api_key =json.load(my_json)['key'] # broken.
 
 

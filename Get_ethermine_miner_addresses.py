@@ -56,12 +56,16 @@ import time
 
 
 def main():
-    jan_start_block = 11570268
+
+    # this is just to scrape a large number of addreses that are from wallets on ethermine.org
+    jan_start_block = 11570268 - 100000 # the -100,000 is to get a large margin
     jan_end_block = 11616099
 
 
-    num_blocks = int(jan_end_block - jan_start_block) # num_blocks =45831
+    num_blocks = int(jan_end_block - jan_start_block)
+
     ethermine_wallet = '0xea674fdde714fd979de3edf0f56aa9716b898ec8'
+    # this is the address of the main source of the payouts
 
     out = open('ethermine_wallets_generated.cvs','w')
     all_addresses = []

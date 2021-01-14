@@ -4,6 +4,7 @@
 # limited by 5 calls / second per ip with a valid API key. They keys are free.
 
 import json
+import time
 import requests
 from utils import Data_Cleaning
 
@@ -84,6 +85,7 @@ def parse_normal_transactions(transaction_list):
     return simplified_transactions
 
 
+
 def write_transactions_to_csv(simplified_transactions, filename='record_of_transactions.csv'):
     """
         Save the simplified transactions to a csv file.
@@ -95,6 +97,8 @@ def write_transactions_to_csv(simplified_transactions, filename='record_of_trans
         out.write('to_address, from_address, block_number, datetime, amount_ether\n')
         for s in simplified_transactions:
             out.write(str(s)+'\n')
+
+
 
 def tester():
     command = get_normal_transactions_command(miner_address=ethermine_wallet)

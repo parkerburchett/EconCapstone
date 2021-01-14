@@ -7,8 +7,12 @@ import json
 import requests
 from utils import Data_Cleaning
 
-my_json = open('etherScan_apiKey.json') # this gets my private API key for Ethermine.org.
-etherscan_api_key =json.load(my_json)['key']
+
+# for an unknown reason you need
+my_json = open('C:\Users\parke\Documents\GitHub\EconCapstone\API_Methods\etherScan_apiKey.json') # this gets my private API key for Ethermine.org.
+etherscan_api_key =json.load(my_json)['key'] # broken.
+
+
 my_json.close()
 # these are some wallet addresses to test on
 ethan = '0xCeB4d0CA821420Cf2553b9e244F6B52364613F94'
@@ -99,4 +103,22 @@ def tester():
     write_transactions_to_csv(simplified_transactions)
     print('fin')
 
-tester()
+def get_to_from_addresses(miner_address, start, end):
+    """
+        Get all the wallets that have touched this wallet between start and end
+
+    :param miner_address:
+    :param start: the block to start at
+    :param end: the end block
+    :returnaddress_list:  a list of all the addresses that involve this wallet between the start and end blocks
+    """
+    command = get_normal_transactions_command(miner_address,start_block=start,end_block=end)
+    data = get_data_from_command(command)
+    address_list = []
+    for trans in data:
+        to_address = trans['to']
+        from_address = trans['from']
+        address_list.append(to_address)
+        address_list.append(from_address)
+
+    return address_list

@@ -27,6 +27,7 @@
 
 # sleep(1 second) every 5 calls. num_blocks to check /5 = number of seconds this will take.
 
+from API_Methods import Etherscan_API
 
 
 # after you let that run. you should have a very long list of wallet addresse that were sent ether by etherum in that week time frame.
@@ -46,9 +47,43 @@
 
 
 
+from API_Methods import Etherscan_API
+import time
+
+# these number are estimates. It should capture most of the transactions within this window.
+
+# the dominaitng tiem cost is the sleep(1). ths
 
 
+def main():
+    jan_start_block = 11570268
+    jan_end_block = 11616099
 
 
+    num_blocks = int(jan_end_block - jan_start_block) # num_blocks =45831
+    ethermine_wallet = '0xea674fdde714fd979de3edf0f56aa9716b898ec8'
 
-ethermine_wallet = '0xea674fdde714fd979de3edf0f56aa9716b898ec8'
+    out = open('ethermine_wallets_generated.cvs','w')
+    all_addresses = []
+    for i in range(0,num_blocks,1000):
+        time.sleep(.2) # this is to not get stopped by API call limit you need to wait a second for 5 calls.
+        # you might be able to walk thorugh each N block chunk. depending on the number of calls to each block.
+        # as long as it is less than 10000 trans in a single block. That would speed it up by a lot.
+        local_start = jan_start_block+i
+        local_end = local_start+1000
+
+        temp_addresses = Etherscan_API.get_to_from_addresses(ethermine_wallet,local_start,local_end)
+
+        print('there were this many unique addresses between on that touched ethermine.org {} and {}: {}'.format(local_start, local_end, len(temp_addresses)))
+        wallets_as_set = set(temp_addresses)
+        temp_addresses = list(wallets_as_set)
+        all_addresses.extend(temp_addresses) # untested
+        a_set = set(all_addresses)
+        all_addresses = list(a_set)
+        print('there are currently {} unique Addresses'.format(len(all_addresses)))
+
+    for s in all_addresses:
+        out.write(s+'\n')
+
+
+main()

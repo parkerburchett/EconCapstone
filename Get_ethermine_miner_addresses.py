@@ -67,7 +67,7 @@ def main():
     ethermine_wallet = '0xea674fdde714fd979de3edf0f56aa9716b898ec8'
     # this is the address of the main source of the payouts
 
-    out = open('ethermine_wallets_generated.cvs','w')
+    out = open('ethermine_wallets_generated.csv', 'w')
     all_addresses = []
     for i in range(0,num_blocks,1000):
         time.sleep(.2) # this is to not get stopped by API call limit you need to wait a second for 5 calls.

@@ -1,22 +1,15 @@
-# look at format_of_transaction_data_from_etherscan.txt for reference
-
-
-
-#pseudocode
-#(String: wallet address,
-#Date: date of first income from ethermine,
-#float[] monthly ether ether sent it for every month since 1-2015. this is (12*6)  or (72
-# read in list of wallets from ethermine.
-
 from API_Methods import Etherscan_API
 import matplotlib.pyplot as plt
 import datetime
+import random
 
 
 
 ethermine_wallet = '0xea674fdde714fd979de3edf0f56aa9716b898ec8'
 big_random_miner = '0xdd619667be721974a21b22bf5e7d54e51adf9c01'
 big_miner_2 ='0xddd31343c41ff761e674c5bfd74e043059fcb2d0'
+old_miner = '0xdc82b8db4a2198443aa583c00ac54cba7b6d5039'
+constant_decrease_miner = '0x72c013330cdfef5c4d8d5880944bc8cd953bd352'
 
 def sum_ether_by_month(income_records: dict) -> list:
     """
@@ -51,15 +44,22 @@ def create_bar_plot_income(monthly_income):
     plt.xlabel('Month ')
     plt.ylabel('Ether')
     plt.xticks(rotation=45)
+
     plt.title('Ether Per Month Since Start')
+
     plt.show()
 
+
+
+# you need a method that overlays the %change in income with the % change in average monthly price
+# also with the previous month high.
+# also with the previous-1 month high.
 
 def get_wallet_income_from_ethermine(miner_address):
     command = Etherscan_API.get_normal_transactions_command(miner_address)
     data = Etherscan_API.get_data_from_command(command)
     simplified_transactions = Etherscan_API.parse_normal_transactions(data)
-    #simplified_transactions is in the form: (to_address, from_address, block_number, datetime, amount_ether)
+    #simplified_transactions a list of tuples: (to_address, from_address, block_number, datetime, amount_ether)
     income_records =[]
     for s in simplified_transactions:
         if (s[1] == ethermine_wallet) and (s[4] > 0):
@@ -73,9 +73,37 @@ def get_wallet_income_from_ethermine(miner_address):
         # you need to find a way to make all of the income statements map onto the same dictionary. in the last 6 years
     return monthly_income
 
-def main():
-    my_miner = '0x31Aa0bE51Af32E9b35486222A1318C6Fc6600547'
-    monthly_income = get_wallet_income_from_ethermine(my_miner)
-    create_bar_plot_income(monthly_income)
+def read_in_wallet_addresses(filename ='ethermine_wallets_generated.csv'):
+    """
 
-main()
+    :param filename: the location of where you are storing all the wallets that use ethermine.
+    :return addreseses: a list of wallets that mine at ethermine
+    """
+
+    with open (filename) as file_in:
+        addresses = file_in.readlines()
+        addresses =[a[:42] for a in addresses] # strip the carriage return
+        random.shuffle(addresses)
+        return addresses
+
+
+def visualize_monthly_income(only_large_firms=False):
+    """
+    See bar graphs of ether income from miners at ethermine.org
+    :return:
+    """
+    wallets = read_in_wallet_addresses()
+    for wallet in wallets:
+        monthly_income = get_wallet_income_from_ethermine(wallet)
+
+        if not only_large_firms:
+            create_bar_plot_income(monthly_income)
+        else:
+            # this is a simple way to see if it is large
+            # there is no reason to choose this standard over anther one
+            total_income = [income[1] for income in monthly_income[:10]]
+            if sum(total_income)>100: # if in the first 10 incomes sum to more than a 100 ethers
+                print('{} is a large firm'.format(wallet))
+                create_bar_plot_income(monthly_income)
+
+visualize_monthly_income(only_large_firms=True)

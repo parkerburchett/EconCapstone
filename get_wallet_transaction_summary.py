@@ -4,7 +4,7 @@ import pandas as pd
 import datetime
 import random
 from time import strptime
-
+from utils import Data_Cleaning
 
 
 ethermine_wallet = '0xea674fdde714fd979de3edf0f56aa9716b898ec8'
@@ -32,6 +32,42 @@ def sum_ether_by_month(income_records: dict) -> list:
 
     summation_as_list.sort(key=lambda x: x[0]) # sort by month
     return summation_as_list
+
+def sum_ether_by_month_v2(income_records: dict) -> list:
+    """
+        Get the total ether earned each month by this wallet from ethermine.org.
+        between Jan 2015 - Dec 2020.
+
+        This method is better.
+
+    :rtype: list
+    :param income_records: A list of tuples of (datetime, income in ether from ethermine.org)
+    :return: dict of (date: ether earned that month) for every month that there is income
+    """
+    months = Data_Cleaning.get_month_year_numbers()
+
+    sum_monthly_income = {}
+    for month_year in months:
+        sum_monthly_income[month_year]=0.0 # initalize the dictionary
+
+    for income_instance in income_records:
+        income_month = income_instance[1][:7]
+        # there is a problem with leading 0s on the month. This solves that problem. by removing leading zeros
+        if income_month[5] == '0':
+            print(income_month)
+            start = income_month[:5]
+            end = income_month[6:]
+            income_month = start+end # reassigned leading zeros problem
+
+        print('you added {} to {}'.format(income_instance[0],income_month))
+        try:
+            sum_monthly_income[income_month] = sum_monthly_income[income_month] + income_instance[0]
+        except:
+            print('{} is outside side of the range Jan 2015 - Dec 2020'.format(str(income_instance)))
+
+    return list(sum_monthly_income.items())
+
+
 
 def create_bar_plot_income(monthly_income):
     """
@@ -71,7 +107,7 @@ def get_wallet_income_from_ethermine(miner_address,get_date=True):
 
     if get_date:
         date_of_first_income = datetime.datetime.strptime(income_records[0][1], '%Y-%m-%d %H:%M:%S')
-        monthly_income = sum_ether_by_month(income_records)
+        monthly_income = sum_ether_by_month_v2(income_records) # form ("2016-3", 2.03252) : date, amount of ether.
         return monthly_income,date_of_first_income
     else:
         return sum_ether_by_month(income_records)
@@ -79,7 +115,6 @@ def get_wallet_income_from_ethermine(miner_address,get_date=True):
 def read_in_wallet_addresses(filename ='ethermine_wallets_generated.csv'):
     """
         Get all of the wallets that have mined from ethermine.org
-
     :param filename: the location of where you are storing all the wallets that use ethermine.
     :return addreseses: a list of wallets that mine at ethermine
     """
@@ -137,29 +172,38 @@ def record_monthly_income_by_wallet():
     print('stub')
 
 
-def add_zeros_to_monthly_income(monthly_income):
+def generate_list_of_month_ids():
     """
-        For clear record keeping. this converts the monthly_income and adds zeros for
-        for the months that don't have any income.
-
-    :param monthly_income: a list of (Year-Month, total ether earned that month
-    :return: full_monthly_income: the same list with zeros for the months where there was no income
-
+        This write the months-Year in the form of 2020-6 to month_names.csv
     """
-    full_monthly_income =[]
     # Source: https://stackoverflow.com/questions/34898525/generate-list-of-months-between-interval-in-python
     all_months = pd.date_range('2015-1-1', '2020-12-31',
                   freq='MS').strftime("%Y-%b").tolist()
 
-    # convert to months as number
-    with open("month_records.csv", 'w') as month_record:
+    with open("month_names.csv", 'w') as month_record:
         for m in all_months:
             year, mon = m.split('-')[0], m.split('-')[1]
-            mon_as_num = strptime(mon,'%b').tm_mon
+            mon_as_num = strptime(mon,'%b').tm_mon # convert to months as number
             to_write = '{}-{}\n'.format(year,mon_as_num)
             print(to_write)
             month_record.write(to_write)
 
+def get_month_year_numbers():
+    """
+    This is a just a faster way of storing the month names. since it does not change
+    :return:
+    """
+    return ['2015-1', '2015-2', '2015-3', '2015-4', '2015-5', '2015-6', '2015-7', '2015-8',
+            '2015-9', '2015-10', '2015-11', '2015-12', '2016-1', '2016-2', '2016-3', '2016-4',
+            '2016-5', '2016-6', '2016-7', '2016-8', '2016-9', '2016-10', '2016-11', '2016-12',
+            '2017-1', '2017-2', '2017-3', '2017-4', '2017-5', '2017-6', '2017-7', '2017-8', '2017-9',
+            '2017-10', '2017-11', '2017-12', '2018-1', '2018-2', '2018-3', '2018-4', '2018-5', '2018-6',
+            '2018-7', '2018-8', '2018-9', '2018-10', '2018-11', '2018-12', '2019-1', '2019-2', '2019-3',
+            '2019-4', '2019-5', '2019-6', '2019-7', '2019-8', '2019-9', '2019-10', '2019-11', '2019-12',
+            '2020-1', '2020-2', '2020-3', '2020-4', '2020-5', '2020-6', '2020-7', '2020-8', '2020-9',
+            '2020-10', '2020-11', '2020-12']
 
+monthly_income, date_first_income = get_wallet_income_from_ethermine(big_random_miner,True)
 
-add_zeros_to_monthly_income('s')
+create_bar_plot_income(monthly_income)
+

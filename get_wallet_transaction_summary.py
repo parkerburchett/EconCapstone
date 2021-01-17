@@ -97,7 +97,7 @@ def create_bar_plot_income(monthly_income):
     plt.show()
 
 
-def get_wallet_income_from_ethermine(miner_address, get_date_of_first_income=True):
+def get_wallet_income_from_ethermine(miner_address, get_date_of_first_income=True, simp=False):
     """
         This queires etherscan.io and stiches together the methods ot see the income and date of firstinceom
     :param miner_address: The wallet to Query
@@ -110,6 +110,7 @@ def get_wallet_income_from_ethermine(miner_address, get_date_of_first_income=Tru
     simplified_transactions = Etherscan_API.parse_normal_transactions(data)
     #simplified_transactions a list of tuples: (to_address, from_address, block_number, datetime, amount_ether)
 
+
     income_records =[]
     for s in simplified_transactions:
         if (s[1] == ethermine_wallet) and (s[4] > 0):
@@ -117,10 +118,21 @@ def get_wallet_income_from_ethermine(miner_address, get_date_of_first_income=Tru
             income = (s[4],s[3])
             income_records.append(income)
 
+    if simp:
+        return sum_ether_by_month_v2(income_records)
+
     if get_date_of_first_income:
-        date_of_first_income = datetime.datetime.strptime(income_records[0][1], '%Y-%m-%d %H:%M:%S')
-        monthly_income = sum_ether_by_month_v2(income_records) # form ("2016-3", 2.03252) : date, amount of ether.
-        return monthly_income,date_of_first_income
+        try:
+            date_of_first_income = datetime.datetime.strptime(income_records[0][1], '%Y-%m-%d %H:%M:%S')
+        except:
+            date_of_first_income = 'noIncome'
+
+        try:
+            monthly_income = sum_ether_by_month_v2(income_records) # form ("2016-3", 2.03252) : date, amount of ether.
+        except:
+            print(ethermine_wallet +' Broke it')
+
+        return monthly_income, date_of_first_income
     else:
         return sum_ether_by_month_v2(income_records)
 
@@ -139,29 +151,26 @@ def read_in_wallet_addresses(filename ='ethermine_wallets_generated.csv'):
         return addresses
 
 # this is too slow. I need a faster way of doing this.
-def visualize_monthly_income(only_large_firms=False):
+def visualize_monthly_income(only_large_firms=False, simp=True):
     """
     See bar graphs of ether income from miners at ethermine.org
     :return: nothings just shows a graph
     """
     import time
 
-    start = datetime.datetime.now()
-    wallets = read_in_wallet_addresses()
-    time_since_found_last = datetime.datetime.now()
-    counter =0
-    for wallet in wallets:
-        # you need a way to pop an error if it didn't work
 
-        monthly_income = get_wallet_income_from_ethermine(wallet)
-        counter +=1
+    wallets = read_in_wallet_addresses()
+
+    for wallet in wallets:
+
+        monthly_income, date_of_first = get_wallet_income_from_ethermine(wallet,simp)
+
         if not only_large_firms:
             create_bar_plot_income(monthly_income)
         else:
             # this is a simple way to get the addresses of every wallet.
             # there is no reason to choose this standard over anther one
             first_year_income = [income[1] for income in monthly_income[:12]]
-
             if sum(first_year_income)>100: # If they made more than a hundred ether in the first year
                 time_between = str(datetime.datetime.now()- time_since_found_last)
                 print('{} On {} of 90000. ;{}; is a large firm'.format(time_between, counter, wallet))
@@ -206,17 +215,36 @@ def get_miner_stats_for_all_ethermine():
         create a new file and write out the payment details them
     """
     import time
+    log = open('account_breaking_log.txt','a') # this tracks the wallets that break the API
     with open('miner_detailed_stats.csv','w') as out:
         out.write('wallet_address,date_of_first_income,array_of_monthly_ether_income\n')
         wallets = read_in_wallet_addresses()
+        random.shuffle(wallets)
         counter =0
         for wallet in wallets:
-            counter+=1
-            record = create_relevant_miner_stats(wallet)
-            out.write(record)
-            print('on {} of 90,000 wrote a record for {}'.format(counter,wallet))
-            time.sleep(.2) # you can speed this up by doing a check to see if every 5 calls at least a second has passed.
-            # this is with a while(boolean at least a second has passed. reset the counter.
+            try:
+                time.sleep(.2)
+                counter+=1
+                record = create_relevant_miner_stats(wallet)
+                out.write(record)
+                print('on {} of 90,000 wrote a record for {}'.format(counter,wallet))
+            except:
+                log.write(wallet + '\n')
+                time.sleep(1) # this is to not overload the api
+
+    log.close()
 
 
 get_miner_stats_for_all_ethermine()
+
+#visualize_monthly_income(simp=True)
+
+
+# in theroy this should never use more than 100MB of memroy and ~%20 of ram
+
+# I started this process and 1/15 at 1:48
+
+#Right now I am gettign about 120 calls a minute.
+# pretty good should be able to do all of them in 12 hours. That is do able.
+
+# you should just let this run all of tonight

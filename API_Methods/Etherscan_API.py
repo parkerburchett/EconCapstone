@@ -47,7 +47,8 @@ def get_data_from_command(command):
     :param command: This is a string of the request of the command to ask the etherscan.io API for
     :return: my_data: a list that represents the data queried from the etherscan.io API.
     """
-    response = requests.get(command)
+
+    response = requests.get(command) # time controls are handled else where
     my_dict = json.loads(response.text)
     return my_dict['result']
 

@@ -4,12 +4,9 @@
 # limited by 5 calls / second per ip with a valid API key. They keys are free.
 
 import json
-import time
 import requests
 from utils import Data_Cleaning
 
-
-# for an unknown reason you need
 my_json = open(r'C:\Users\parke\Documents\GitHub\EconCapstone\API_Methods\etherScan_apiKey.json') # this gets my private API key for Ethermine.org.
 etherscan_api_key =json.load(my_json)['key'] # broken.
 
@@ -98,15 +95,27 @@ def write_transactions_to_csv(simplified_transactions, filename='record_of_trans
         out.write('to_address, from_address, block_number, datetime, amount_ether\n')
         for s in simplified_transactions:
             out.write(str(s)+'\n')
-
-
-
 def tester():
     command = get_normal_transactions_command(miner_address=ethermine_wallet)
     data = get_data_from_command(command)
     simplified_transactions = parse_normal_transactions(data)
     write_transactions_to_csv(simplified_transactions)
     print('fin')
+
+
+def get_normal_transaction(miner_address, start_block=0, end_block=99999999):
+    """
+
+    :param miner_address: A wallet Address
+    :param start_block: block to start at
+    :param end_block: the last block to consider
+    :return: a list of tuples representing the transactions for this block between the start_block and end_blokc
+    """
+
+    command = get_normal_transactions_command(miner_address, start_block,end_block)
+    data = get_data_from_command(command)
+    return parse_normal_transactions(data)
+
 
 def get_to_from_addresses(miner_address, start, end):
     """

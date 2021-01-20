@@ -235,9 +235,9 @@ def get_miner_stats_for_all_ethermine():
     log.close()
 
 
-get_miner_stats_for_all_ethermine()
+#get_miner_stats_for_all_ethermine()
 
-#visualize_monthly_income(simp=True)
+visualize_monthly_income(simp=True)
 
 
 # in theroy this should never use more than 100MB of memroy and ~%20 of ram

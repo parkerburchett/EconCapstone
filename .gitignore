@@ -9,3 +9,4 @@ miner_detailed_stats.csv
 *.zip
 miner_detailed_stats.csv
 miner_detailed_stats.csv
+*.crc

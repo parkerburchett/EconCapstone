@@ -173,7 +173,7 @@ def main():
     second =[]
     file_names = get_csv_part_file_names()
     count_unique_miners = 0
-    for i in range(198):
+    for i in range(199):
         print("merging files {} and {}".format(i, i+1))
         miner_data1 = load_single_file(file_names[i])
         first = group_miner_income(miner_data1)
@@ -187,6 +187,7 @@ def main():
     num_miners_in_second = len(second)
     print('In this program there are {} unique miners'.format(num_miners_in_second + count_unique_miners))
     print("there should be approx exactly 593674 miners with data")
+    print('you are missing {} off from the correct solution'.format(num_miners_in_second + count_unique_miners - 593674 ))
 
 
 

@@ -9,6 +9,8 @@ import os
 import csv
 import glob
 import copy
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 def get_csv_part_file_names():
@@ -40,7 +42,7 @@ def load_single_file(filename):
 def build_default_miner_revenue():
     with open(r'C:\Users\parke\Documents\GitHub\EconCapstone\datasets\default_miner_data.csv', 'r') as default:
         reader = csv.reader(default)
-        default_lines  = [line for line in reader]
+        default_lines = [line for line in reader]
         return default_lines
 
 
@@ -128,13 +130,17 @@ def group_miner_income_statements(complete_miner_income):
     groups.append(last_group)
     return groups
 
+
 def fully_group_miner_data():
     """
+        Read in the income statements from the csv files and return a list of lists where each element
+        is all the data for that miner. THis takes 30 seconds to run on 4.2 million income statements. Nearly all of Ethermine
+
 
     :return: grouped_miner_statements: a list of lists of miner_income statements.
     Each element is all of the income statements I have for that miner.
     """
-    
+
     file_names = get_csv_part_file_names()
     left_over_statements = []
     grouped_miner_statements = []
@@ -152,13 +158,74 @@ def fully_group_miner_data():
     left_over_statements.sort(key=lambda x: x[1])
     left_over_groups = group_miner_income_statements(left_over_statements)
 
-    print(' there are {} left overs'.format(len(left_over_groups)))
-    print('before you add in the leftovers you are down {} records'.format(593674 - len(grouped_miner_statements)))
+    print('There are {} left overs'.format(len(left_over_groups)))
+    print('Before you add in the leftovers you are down {} records'.format(593674 - len(grouped_miner_statements)))
     grouped_miner_statements.extend(left_over_groups)
     print("there should be exactly 593674 miners with data")
-    print('you are missing {} off from the correct solution. I dont know why those are lost'.format(593674 - len(grouped_miner_statements)))
-    # I lost 52 records from when I downloaded them from jypter notebooks. I Can't find where I lost those
-
+    print('you are missing {} off from the correct number of wallets. I dont know why those are lost'.format(593674 - len(grouped_miner_statements)))
+    # I lost 52 records from when I downloaded them from jupyter notebooks. I Can't find where I lost those
     return grouped_miner_statements
 
-fully_group_miner_data()
+
+def cast_income_group_as_standard_form(group,default):
+    """
+        You need to add zeros to properly look at the correlation between implied gh/s and
+
+    :param group: A list of all the monthly income statements I have for a particular miner.
+    :param default: A list of all the constants that you care about.
+    :return: standard_form: the data now in standard form where the data is
+    """
+    # cast group as a dictionary where the key is the month_year.
+
+    dict_of_group ={}
+
+    if len(group)==0:
+        stop =  input('write somethign to continue')
+
+    for g in group:
+        dict_of_group[g[0]] = g # key is year_month:  value is the data for that month. Including the month_year
+
+    try:
+        wallet_address = group[0][1]
+    except:
+        return
+    
+    standard_form =[default[0]]
+    months_with_data = [x[0] for x in group]
+
+    for s in default[1:]:
+        if s[0] in months_with_data:
+            print('old')
+            print(s)
+            s = dict_of_group[s[0]]
+            print('updated')
+            print(s)
+        s[1] = wallet_address
+        standard_form.append(s)
+    return standard_form
+
+
+def show_histogram_of_firm_age():
+    """
+
+    :return: Create a histogram in matplotlib for the number of months of income each firm has.
+    """
+    all_groups = fully_group_miner_data()
+    num_months_with_income = [len(x) for x in all_groups]
+    plt.hist(num_months_with_income, bins=[x for x in range(60)])
+    plt.show()
+
+
+def main():
+    #show_histogram_of_firm_age()
+    all_groups = fully_group_miner_data()
+    default =  build_default_miner_revenue()
+
+
+    all_standard_form = []
+    for group in all_groups:
+        standard_form = cast_income_group_as_standard_form(group,default)
+        all_standard_form.append(standard_form)
+
+    print('fin')
+main()

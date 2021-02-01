@@ -2,19 +2,12 @@
 
 # This program takes in two files
 # datasets/default_miner_data.csv : the template for all of the zeros.
-
-
-# I am choosing to exclude all 2021-01 and stuff that only has a single
-
-
-# It makes more sense to walk through them in chunks.
-# There is a problem where the income statements are broken up accross two files
+# I am choosing to exclude all 2021-01 because I don't have a full month for it.
 
 
 import os
 import csv
 import glob
-import numpy as np
 import copy
 
 
@@ -53,14 +46,14 @@ def build_default_miner_revenue():
 
 def group_miner_income(miner_data):
     """
+        # Take miner_data and group it by wallet address
+        This returns a list of lists of miner_monthly incomes where each list is all of the income statements of that miner.
 
     :param miner_income_statements: a list of arrays of every miner.
     :return: a array of single_miners where all of those income statements come from a single miner. Where each tuple stores all the the income statements for a particular miner.
     """
-
     miner_grouped_list = []
     single_miner = []
-
     while len(miner_data) > 1:
         if len(single_miner) == 0 and miner_data[0][1] != miner_data[1][1]:
             single_miner = miner_data.pop(0)
@@ -88,113 +81,84 @@ def group_miner_income(miner_data):
     # 1 this is the only mining income. eg in the next file. the first miner is different.]
 
 
-
-def merge_miner_groups(groups_A, groups_B):
+def generate_complete_and_unknown_complete_miner_groups(miner_data):
     """
-        This solves having miner data split accross the two files.
+        This takes in a list of miner_income statements and returns two lists.
+            A list of income statements that is complete and one that is maybe complete.
 
-    :param groups_A: a miner_group generated from file i
-    :param groups_B: a miner_group generated from file i+1
-    :return:  first, second miner_groups
-    """
-    A_n = groups_A.pop(-1)
-    A_n_miner = A_n[1]
-
-    if isinstance(A_n[0], str):
-        A_n = [A_n]  # cast as a list of lists
-
-    A_n_less_1 = groups_A.pop(-1)
-    A_n_less_1_miner = A_n_less_1[0][1]
-
-    B_0 = groups_B.pop(0)
-    B_0_miner = B_0[0][1]
-
-    merge_first = False
-    merge_second = False
-
-    if A_n_miner == A_n_less_1_miner: # should be ==
-        # merge these two since they have the same miner
-        A_n_less_1.append(A_n)
-        merge_first = True
-
-    if A_n_miner == B_0_miner:
-        if merge_first:
-            merge_second = True
-            for record in B_0:
-                A_n_less_1.append(record)
-        else:
-            merge_second = True
-            for record in B_0:
-                A_n.append(record)
-
-
-    if merge_first and merge_second:
-        # in this case A_n, A_n_less_1 and B_0 all refer to the same miner.
-        # print('all refer to the same miner')
-        # print('that miner is {}'.format(A_n_miner))
-        groups_A.append(A_n_less_1)
-
-    elif merge_first and not merge_second:
-        # you have two miners A_n_less_1 and B_0
-        # print('you have two miners A_n_less_1 and B_0')
-        # print('Those miners are the last in first {} and the first in the second {}'.format(A_n_less_1_miner,B_0_miner))
-        groups_A.append(A_n_less_1)
-        groups_A.append(B_0)
-
-    elif not merge_first and merge_second:
-        # you have two miners, stored in A_n_less_1 and A_n
-        # print('you have two miners, stored in A_n_less_1 and A_n')
-        # print('Those miners are the last in second to last in A {} and the first in the second {}'.format(A_n_less_1_miner, A_n_miner))
-        groups_A.append(A_n_less_1)
-        groups_A.append(A_n)
-
-    else:
-        # you have three unique miners
-        # case for files 001 and 002.
-        # print('you have three unique miners.')
-        # print('Miners in alphabetical order are \n{}\n{}\n{}'.format(A_n_less_1_miner,A_n_miner,B_0_miner))
-        groups_A.append(A_n_less_1)
-        groups_A.append(A_n)
-        groups_A.append(B_0)
-
-
-    return groups_A, groups_B
-
-
-def main():
-    """
-        This stiches together all of the methods to group miners into list of list of their own income statements.
-        # this is slightly inefficient, since it reads every file twice.
-        I need to rewrite that to fix it.
-        # right now it only takes about 5 minutes to run
+    :param miner_data: A list fo miner income from load_single_file :return: complete_income_statements: a list of
     :return:
+    income statements. If a miner in in here, all of the miner's income statements are there.
+    possibly_complete_income_statements : a list of miner income statements whose addresses are the first or last in
+
     """
-    default = build_default_miner_revenue()
-    second =[]
+    first_miner_address = miner_data[0][1]
+    last_miner_address = miner_data[-1][1]
+    complete_income_statements = []
+    possibly_complete_income_statements = []
+
+    for statement in miner_data:
+        if statement[1] == first_miner_address or statement[1] == last_miner_address:
+            possibly_complete_income_statements.append(statement)
+        else:
+            complete_income_statements.append(statement)
+
+    return complete_income_statements, possibly_complete_income_statements
+
+
+def group_miner_income_statements(complete_miner_income):
+    """
+        Pass this a list of income statements, It returns those income statements packaged into lists when
+    :param complete_miner_income: generate_complete_and_unknown_complete_miner_groups. A list of income statements for the miner.
+    :return: The data grouped in to a list of lists where each element in teh first list is all the miner data I have for them
+    """
+    groups = []
+    start = 0
+    last_miner_address = complete_miner_income[-1][1]
+    for i in range(len(complete_miner_income)-1):
+        if complete_miner_income[start][1] != complete_miner_income[i][1]:
+            full_miner = complete_miner_income[start:i]
+            groups.append(full_miner)
+            start = i
+
+    last_group = []
+    for i in range(len(complete_miner_income)-1):
+        if complete_miner_income[i][1] == last_miner_address:
+            last_group.append(complete_miner_income[i])
+    groups.append(last_group)
+    return groups
+
+def fully_group_miner_data():
+    """
+
+    :return: grouped_miner_statements: a list of lists of miner_income statements.
+    Each element is all of the income statements I have for that miner.
+    """
+    
     file_names = get_csv_part_file_names()
-    count_unique_miners = 0
-    for i in range(199):
-        print("merging files {} and {}".format(i, i+1))
-        miner_data1 = load_single_file(file_names[i])
-        first = group_miner_income(miner_data1)
-        miner_data2 = load_single_file(file_names[i+1])
-        second = group_miner_income(miner_data2)
-        first, second = merge_miner_groups(first, second)
-        count_unique_miners += len(first)
-
-        print(count_unique_miners)
-
-    num_miners_in_second = len(second)
-    print('In this program there are {} unique miners'.format(num_miners_in_second + count_unique_miners))
-    print("there should be approx exactly 593674 miners with data")
-    print('you are missing {} off from the correct solution'.format(num_miners_in_second + count_unique_miners - 593674 ))
+    left_over_statements = []
+    grouped_miner_statements = []
+    counter =0
+    for file in file_names:
+        complete, possibly_complete = generate_complete_and_unknown_complete_miner_groups(load_single_file(file))
+        complete_groups = group_miner_income_statements(complete)
+        left_over_statements.extend(possibly_complete)
+        grouped_miner_statements.extend(complete_groups)
+        counter +=1
+        print('Grouped a file {} with {} addresses'.format(counter,len(complete_groups)))
 
 
+    # sort left_over_statements
+    left_over_statements.sort(key=lambda x: x[1])
+    left_over_groups = group_miner_income_statements(left_over_statements)
 
+    print(' there are {} left overs'.format(len(left_over_groups)))
+    print('before you add in the leftovers you are down {} records'.format(593674 - len(grouped_miner_statements)))
+    grouped_miner_statements.extend(left_over_groups)
+    print("there should be exactly 593674 miners with data")
+    print('you are missing {} off from the correct solution. I dont know why those are lost'.format(593674 - len(grouped_miner_statements)))
+    # I lost 52 records from when I downloaded them from jypter notebooks. I Can't find where I lost those
 
+    return grouped_miner_statements
 
-
-
-
-
-main()
+fully_group_miner_data()

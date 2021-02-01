@@ -180,35 +180,29 @@ def cast_income_group_as_standard_form(group,default):
     dict_of_group ={}
 
     if len(group)==0:
-        stop =  input('write somethign to continue')
+        return
 
     for g in group:
         dict_of_group[g[0]] = g # key is year_month:  value is the data for that month. Including the month_year
 
-    try:
-        wallet_address = group[0][1]
-    except:
-        return
-    
+    wallet_address = group[0][1]
     standard_form =[default[0]]
     months_with_data = [x[0] for x in group]
 
     for s in default[1:]:
         if s[0] in months_with_data:
-            print('old')
-            print(s)
             s = dict_of_group[s[0]]
-            print('updated')
-            print(s)
         s[1] = wallet_address
         standard_form.append(s)
+
     return standard_form
 
 
 def show_histogram_of_firm_age():
     """
+    Create a histogram in matplotlib of number of months of income a firm has
 
-    :return: Create a histogram in matplotlib for the number of months of income each firm has.
+    :return:
     """
     all_groups = fully_group_miner_data()
     num_months_with_income = [len(x) for x in all_groups]
@@ -223,9 +217,15 @@ def main():
 
 
     all_standard_form = []
+    counter = 0
     for group in all_groups:
         standard_form = cast_income_group_as_standard_form(group,default)
         all_standard_form.append(standard_form)
+        counter+=1
+        if counter % 10000 == 0:
+            print('casted {} miners into the default'.format(counter))
 
     print('fin')
+
+
 main()

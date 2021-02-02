@@ -9,17 +9,16 @@ import os
 import csv
 import glob
 import copy
-import numpy as np
 import matplotlib.pyplot as plt
 
 
-def get_csv_part_file_names():
+def get_raw_data_file_names():
     os.chdir(r'C:\Users\parke\Documents\GitHub\EconCapstone\datasets\csv_miner_data_parts')
     all_filenames = [i for i in glob.glob('*.csv')]
     return all_filenames
 
 
-def get_header():
+def get_column_names():
     return ['year_month',
           'to_address',
           'miner_monthly_eth_revenue',
@@ -39,51 +38,14 @@ def load_single_file(filename):
         return lines
 
 
-def build_default_miner_revenue():
+def build_default_miner_template():
     with open(r'C:\Users\parke\Documents\GitHub\EconCapstone\datasets\default_miner_data.csv', 'r') as default:
         reader = csv.reader(default)
         default_lines = [line for line in reader]
         return default_lines
 
 
-def group_miner_income(miner_data):
-    """
-        # Take miner_data and group it by wallet address
-        This returns a list of lists of miner_monthly incomes where each list is all of the income statements of that miner.
-
-    :param miner_income_statements: a list of arrays of every miner.
-    :return: a array of single_miners where all of those income statements come from a single miner. Where each tuple stores all the the income statements for a particular miner.
-    """
-    miner_grouped_list = []
-    single_miner = []
-    while len(miner_data) > 1:
-        if len(single_miner) == 0 and miner_data[0][1] != miner_data[1][1]:
-            single_miner = miner_data.pop(0)
-            copy_of_single_miner = copy.deepcopy(single_miner)
-            single_miner = []
-            miner_grouped_list.append([copy_of_single_miner])
-
-        elif miner_data[0][1] == miner_data[1][1]:
-            cur_line = miner_data.pop(0)
-            single_miner.append(cur_line) # might need to be .extend
-
-        else: # the miners are different
-            cur_line = miner_data.pop(0)
-            single_miner.append(cur_line)
-            copy_of_single_miner = copy.deepcopy(single_miner)
-            single_miner =[]
-            miner_grouped_list.append(copy_of_single_miner)
-
-    miner_grouped_list.append(miner_data.pop(0))
-    return miner_grouped_list
-
-    # at this point miner_data[0][1] is the last mining address in that file.
-    # one of a 3 things must be true
-    # for 001 the last miner is *359e
-    # 1 this is the only mining income. eg in the next file. the first miner is different.]
-
-
-def generate_complete_and_unknown_complete_miner_groups(miner_data):
+def partition_complete_uncomplete_income_statements(miner_data):
     """
         This takes in a list of miner_income statements and returns two lists.
             A list of income statements that is complete and one that is maybe complete.
@@ -101,6 +63,7 @@ def generate_complete_and_unknown_complete_miner_groups(miner_data):
 
     for statement in miner_data:
         if statement[1] == first_miner_address or statement[1] == last_miner_address:
+            # if the income statement is for the first or last miner
             possibly_complete_income_statements.append(statement)
         else:
             complete_income_statements.append(statement)
@@ -110,7 +73,7 @@ def generate_complete_and_unknown_complete_miner_groups(miner_data):
 
 def group_miner_income_statements(complete_miner_income):
     """
-        Pass this a list of income statements, It returns those income statements packaged into lists when
+        Pass this a list of income statements. It returns those income statements packaged into sublists one for each miner
     :param complete_miner_income: generate_complete_and_unknown_complete_miner_groups. A list of income statements for the miner.
     :return: The data grouped in to a list of lists where each element in teh first list is all the miner data I have for them
     """
@@ -131,31 +94,28 @@ def group_miner_income_statements(complete_miner_income):
     return groups
 
 
-def fully_group_miner_data():
+def group_miners_from_files(file_names):
     """
-        Read in the income statements from the csv files and return a list of lists where each element
-        is all the data for that miner. THis takes 30 seconds to run on 4.2 million income statements. Nearly all of Ethermine
+        Read each file in file_names and group the miner income statements into lists that only consider a single miner
 
-
-    :return: grouped_miner_statements: a list of lists of miner_income statements.
-    Each element is all of the income statements I have for that miner.
+    :param file_names: the names of the files with the raw data
+    :return: grouped_miner_statements: A list of lists. Each sublist is all of the income statements for a miner.
     """
 
-    file_names = get_csv_part_file_names()
+    #file_names = get_raw_data_file_names()
     left_over_statements = []
     grouped_miner_statements = []
-    counter =0
+    counter = 0
     for file in file_names:
-        complete, possibly_complete = generate_complete_and_unknown_complete_miner_groups(load_single_file(file))
+        complete, possibly_complete = partition_complete_uncomplete_income_statements(load_single_file(file))
         complete_groups = group_miner_income_statements(complete)
         left_over_statements.extend(possibly_complete)
         grouped_miner_statements.extend(complete_groups)
-        counter +=1
+        counter += 1
         print('Grouped a file {} with {} addresses'.format(counter,len(complete_groups)))
 
-
     # sort left_over_statements
-    left_over_statements.sort(key=lambda x: x[1])
+    left_over_statements.sort(key=lambda x: x[1]) # sort by wallet.
     left_over_groups = group_miner_income_statements(left_over_statements)
 
     print('There are {} left overs'.format(len(left_over_groups)))
@@ -163,7 +123,7 @@ def fully_group_miner_data():
     grouped_miner_statements.extend(left_over_groups)
     print("there should be exactly 593674 miners with data")
     print('you are missing {} off from the correct number of wallets. I dont know why those are lost'.format(593674 - len(grouped_miner_statements)))
-    # I lost 52 records from when I downloaded them from jupyter notebooks. I Can't find where I lost those
+    # I lost 52 records from when I downloaded them from jupyter notebooks. I can't find where I lost those
     return grouped_miner_statements
 
 
@@ -189,7 +149,7 @@ def cast_income_group_as_standard_form(group,default):
     standard_form =[default[0]]
     months_with_data = [x[0] for x in group]
 
-    for s in default[1:]:
+    for s in default[1:]: # ignore the first row since it is the header
         if s[0] in months_with_data:
             s = dict_of_group[s[0]]
         s[1] = wallet_address
@@ -198,45 +158,27 @@ def cast_income_group_as_standard_form(group,default):
     return standard_form
 
 
-def show_histogram_of_firm_age():
+def show_histogram_of_firm_age(all_groups):
     """
-    Create a histogram in matplotlib of number of months of income a firm has
-
-    :return:
+    Create a histogram in matplotlib of number of months of income each firm has.
+    Interestingly this shows a very steep drop off for each month. About 35% of all my miners
+    only have a single month of income.
+    :param all_groups: a group for every miner with an income statement
+    :return: a matplotlib histogram of firm age.
     """
-    all_groups = fully_group_miner_data()
     num_months_with_income = [len(x) for x in all_groups]
     plt.hist(num_months_with_income, bins=[x for x in range(60)])
     plt.show()
 
-def show_histogram_excluding_december_2012():
-    all_groups = fully_group_miner_data()
 
-    all_groups_excluding_december=[]
+def convert_to_standard_form(all_groups):
+    """
+        Convert all income groups in to a list of miners where their monthly income is in standard form.
 
-    for g in all_groups:
-        # print(g[0])
-        # print(g[0][0])
-        # print(g[0][0][0])
-        if g[0][0] not in ['2020-12','2021-01'] : # the first income statement for the miner is not december 2020
-            all_groups_excluding_december.append(g)
-
-    num_months_with_income = [len(x) for x in all_groups_excluding_december]
-    plt.hist(num_months_with_income, bins=[x for x in range(60)])
-    plt.show()
-
-
-
-def main():
-
-    #all_groups = fully_group_miner_data()
-
-    show_histogram_excluding_december_2012()
-
-
-    default =  build_default_miner_revenue()
-
-
+    :param all_groups: A list of lists. Each element is every monthly income statement for that miner.
+    :return: all_standard_form: all of the miners where, for the months they have no income, there is a 0 in the monthly income
+    """
+    default = build_default_miner_template()
     all_standard_form = []
     counter = 0
     for group in all_groups:
@@ -245,9 +187,14 @@ def main():
         counter+=1
         if counter % 10000 == 0:
             print('casted {} miners into the default'.format(counter))
+            # this is just to visualize progress.
+
+    return all_standard_form
 
 
-    print('fin')
-
+def main():
+    file_names = get_raw_data_file_names()
+    all_groups = group_miners_from_files(file_names)
+    groups_in_standard_from = convert_to_standard_form(all_groups)
 
 main()

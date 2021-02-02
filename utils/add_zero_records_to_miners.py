@@ -209,10 +209,31 @@ def show_histogram_of_firm_age():
     plt.hist(num_months_with_income, bins=[x for x in range(60)])
     plt.show()
 
+def show_histogram_excluding_december_2012():
+    all_groups = fully_group_miner_data()
+
+    all_groups_excluding_december=[]
+
+    for g in all_groups:
+        # print(g[0])
+        # print(g[0][0])
+        # print(g[0][0][0])
+        if g[0][0] not in ['2020-12','2021-01'] : # the first income statement for the miner is not december 2020
+            all_groups_excluding_december.append(g)
+
+    num_months_with_income = [len(x) for x in all_groups_excluding_december]
+    plt.hist(num_months_with_income, bins=[x for x in range(60)])
+    plt.show()
+
+
 
 def main():
-    #show_histogram_of_firm_age()
-    all_groups = fully_group_miner_data()
+
+    #all_groups = fully_group_miner_data()
+
+    show_histogram_excluding_december_2012()
+
+
     default =  build_default_miner_revenue()
 
 
@@ -224,6 +245,7 @@ def main():
         counter+=1
         if counter % 10000 == 0:
             print('casted {} miners into the default'.format(counter))
+
 
     print('fin')
 

@@ -8,7 +8,7 @@
 import os
 import csv
 import glob
-import copy
+import json
 import matplotlib.pyplot as plt
 
 
@@ -146,15 +146,16 @@ def cast_income_group_as_standard_form(group,default):
         dict_of_group[g[0]] = g # key is year_month:  value is the data for that month. Including the month_year
 
     wallet_address = group[0][1]
-    standard_form =[default[0]]
+    standard_form =[(default[0])]
     months_with_data = [x[0] for x in group]
 
     for s in default[1:]: # ignore the first row since it is the header
         if s[0] in months_with_data:
             s = dict_of_group[s[0]]
         s[1] = wallet_address
-        standard_form.append(s)
+        standard_form.append(tuple(s))
 
+    standard_form =  tuple(standard_form)
     return standard_form
 
 
@@ -171,7 +172,7 @@ def show_histogram_of_firm_age(all_groups):
     plt.show()
 
 
-def convert_to_standard_form(all_groups):
+def convert_groups_to_standard_form(all_groups):
     """
         Convert all income groups in to a list of miners where their monthly income is in standard form.
 
@@ -192,9 +193,53 @@ def convert_to_standard_form(all_groups):
     return all_standard_form
 
 
+def convert_standard_form_to_dict(groups_in_standard_form):
+    """
+        Create a dictionary object where the key is the wallet and the value it the standard from of that wallet
+
+    :param groups_in_standard_form: A list of miner groups in standard form. Standard form is where all of the months
+    are considered and 0 exist where a miner had no income.
+    :return:all_groups_as_dict: the key is the wallet, the values are the standard form income statements of that wallet.
+    """
+    all_groups_as_dict = {}
+    c =0
+    for group in groups_in_standard_form:
+        c +=1
+        if type(group) is tuple:
+            wallet_address = group[1][1]
+            all_groups_as_dict[wallet_address] = group
+        if c % 10000 ==0:
+             print('{} cast as dicts'.format(c))
+    return all_groups_as_dict
+
+
+def write_dict_to_json(all_groups_as_dict):
+    """
+        Save the standard form as a json.
+
+    :param all_groups_as_dict: A dictionary object where the key is the wallet address and the value are
+    the standard form income statements of that wallet
+    :return: nothing
+    """
+    try:
+        out = open(r'C:\Users\parke\Documents\GitHub\EconCapstone\datasets\ethermine_standard_form_data.json','x')
+    except:
+        out = open(r'C:\Users\parke\Documents\GitHub\EconCapstone\datasets\ethermine_standard_form_data.json', 'w')
+    out.seek(0)# this makes it overwrite the existing file
+    
+    json.dump(all_groups_as_dict,out)
+
+    # this takes 5ish  minutes to dump the entire data in standard form.
+    # the ethermine data is then 4.5G.
+    out.close()
+
 def main():
     file_names = get_raw_data_file_names()
     all_groups = group_miners_from_files(file_names)
-    groups_in_standard_from = convert_to_standard_form(all_groups)
+    groups_in_standard_form = convert_groups_to_standard_form(all_groups)
+    all_groups_as_dict =  convert_standard_form_to_dict(groups_in_standard_form)
+    write_dict_to_json(all_groups_as_dict)
+    print('dumped to json file')
+
 
 main()

@@ -10,3 +10,4 @@ miner_detailed_stats.csv
 miner_detailed_stats.csv
 miner_detailed_stats.csv
 *.crc
+datasets/ethermine_standard_form_data.json

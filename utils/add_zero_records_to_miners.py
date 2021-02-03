@@ -226,20 +226,23 @@ def write_dict_to_json(all_groups_as_dict):
     except:
         out = open(r'C:\Users\parke\Documents\GitHub\EconCapstone\datasets\ethermine_standard_form_data.json', 'w')
     out.seek(0)# this makes it overwrite the existing file
-    
+
     json.dump(all_groups_as_dict,out)
 
     # this takes 5ish  minutes to dump the entire data in standard form.
     # the ethermine data is then 4.5G.
     out.close()
 
-def main():
+def get_sample_data_standard_from(size=10):
+    file_names = get_raw_data_file_names()
+    all_groups = group_miners_from_files(file_names[:size])
+    groups_in_standard_form = convert_groups_to_standard_form(all_groups)
+    all_groups_as_dict = convert_standard_form_to_dict(groups_in_standard_form)
+    return all_groups_as_dict
+
+def get_data_into_standard_form():
     file_names = get_raw_data_file_names()
     all_groups = group_miners_from_files(file_names)
     groups_in_standard_form = convert_groups_to_standard_form(all_groups)
     all_groups_as_dict =  convert_standard_form_to_dict(groups_in_standard_form)
-    write_dict_to_json(all_groups_as_dict)
-    print('dumped to json file')
-
-
-main()
+    return all_groups_as_dict

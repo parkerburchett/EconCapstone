@@ -2,10 +2,10 @@
 # %change in derived GH/s / % change in usd value of GH/
 
 import json
+import numpy as np
 import add_zero_records_to_miners as add_zeros
 
-
-"""
+outline="""
 To get an elasticity score you need 4 months of data. You exclude every thing with 3 or less months of income. 
 
 You want data saved in a large .csv file that looks like this:
@@ -13,12 +13,9 @@ miner_address, year_month(of start),
 own-price elasticity between (year_month and year_month-1), 
 Firm size (avg gh/s for the months considered),
 Firm age (number of full months of income),
-Dollar_value_of_ghs in year_month -2,
-Dollar_value_of_ghs in year_month -3,
-income from only Ethermine,
-incoem from only SparkPool,
-income from both Sparkpool and ethermine, 
-
+Dollar_value_of_ghs in year_month -2, this is price at t-2
+Dollar_value_of_ghs in year_month -3, this is price at t-3 
+source:ethermine
 
 """
 
@@ -65,47 +62,80 @@ def percent_change(current,previous):
         return float('inf')
 
 
-def compute_GHs_elasticity(standard_form_group, months_with_data):
+def compute_GHs_elasticity(standard_form_group, full_months):
     """
-        For the months that we have data (months_with_data) compute the % change in monthly GHs and price of GHs
-
-            # I think the math here is wrong. I don't know why though.
-            I am to tired to keep it in my head
-
-        This ignores all zeros. I will need to add in the zeros later to fix it.
-
-        maybe add in get months between (inclusive) start and end +1.
+        For the months that we have data (full_months) compute the % change in monthly GHs and price of GHs
 
     :param standard_form_group:
-    :return: (wallet, GH/s elasticity
+    :param full_months: a list of months you are treating as data.
+
+    :return: elasticity_dict : a dictionary where the key is the year_month and the value is the elastity score for that
+            month and teh previous. or Unknown otherwise.
     """
+    if len(full_months < 4):
+        print(standard_form_group)
+        res = input('this wallet was bad 3 or less months with data. press any key to continue')
+        return
 
-    wallet_address = standard_form_group[1][1]
+    elif len(full_months == 4):
+        # you only get a single elasticy for the 3rd element.
+        group_dict = {}
+        for g in standard_form_group[1:]:
+            group_dict[g[0]] = g  # the year_month is the key
 
-    group_dict ={}
-    for g in standard_form_group[1:]:
-        group_dict[g[0]] = g # the year_month is the key
+        derived_monthly_miner_ghs = []
+        derived_USD_value_of_ghs =  []
 
-    derived_monthly_miner_ghs, derived_USD_value_of_ghs =[], []
+        for month in full_months:
+            derived_monthly_miner_ghs.append(float(group_dict[month][8]))
+            derived_USD_value_of_ghs.append(float(group_dict[month][7]))
 
-    for month in months_with_data:
-        derived_monthly_miner_ghs.append(float(group_dict[month][8]))
-        derived_USD_value_of_ghs.append(float(group_dict[month][7]))
-    elasticity_scores= []
+        elasticity_dict = {}  # key is month_year: elasticity for that month with prev month.
+        cur_hashrate = derived_monthly_miner_ghs[2]
+        prev_hashrate = derived_monthly_miner_ghs[2 - 1]
+        change_hashrate = percent_change(current=cur_hashrate, previous=prev_hashrate)
 
-    for i in range(len(months_with_data)-2): # untested
-        cur_hashrate = derived_monthly_miner_ghs[i]
-        next_hashrate =  derived_monthly_miner_ghs[i+1]
-        change_hashrate = percent_change(next_hashrate,cur_hashrate)
+        cur_price = derived_USD_value_of_ghs[2]
+        prev_price = derived_USD_value_of_ghs[2 - 1]
+        change_price = percent_change(current=cur_price, previous=prev_price)
 
-        cur_price = derived_USD_value_of_ghs[i]
-        next_price = derived_USD_value_of_ghs[i+1]
-        change_price = percent_change(next_price, cur_price)
+        elasticity = change_hashrate / change_price
+        month = full_months[2] # the third month is the only elasticity scores that matter
+        elasticity_dict[month] = elasticity
 
-        elasticity = change_hashrate/change_price
-        elasticity_scores.append(elasticity)
+        elasticity_dict[full_months[1]] ='Unknownn'
 
-    return wallet_address, elasticity_scores
+    else:
+        # normal case: len>=5.
+        group_dict ={}
+        for g in standard_form_group[1:]:
+            group_dict[g[0]] = g # the year_month is the key
+
+        derived_monthly_miner_ghs = []
+        derived_USD_value_of_ghs  = []
+
+        for month in full_months:
+            derived_monthly_miner_ghs.append(float(group_dict[month][8]))
+            derived_USD_value_of_ghs.append(float(group_dict[month][7]))
+
+        elasticity_dict  ={} # key is month_year: elasticity for that month with prev month.
+
+        ## If you only have 4 montsh, 1,2,3,4 you will only get an elastiticy for between month 2,3 THis is stored in month 3
+        for i in range(start=1, stop=len(full_months) - 1): # untested
+            cur_hashrate = derived_monthly_miner_ghs[i]
+            prev_hashrate =  derived_monthly_miner_ghs[i-1]
+            change_hashrate = percent_change(current=cur_hashrate,previous=prev_hashrate)
+
+            cur_price = derived_USD_value_of_ghs[i]
+            prev_price = derived_USD_value_of_ghs[i-1]
+            change_price = percent_change(current=cur_price,previous=prev_price)
+
+            elasticity = change_hashrate/change_price
+
+            month = full_months[i]
+            elasticity_dict[month] = elasticity # assign the elasticity score to the proper month.
+            elasticity_dict[full_months[1]] = 'Unknown'
+    return elasticity_dict
 
 
 def get_months_to_consider(standard_form_group):
@@ -133,11 +163,85 @@ def get_months_to_consider(standard_form_group):
             last_month_with_data = all_months[j]
             end_index =j # correct
             break
-
-
-
     months_to_consider = all_months[start_index:end_index]
     return months_to_consider
+
+
+def cast_group_tuple_as_dict(group_standard_from):
+    group_dict = {}  # cast it as a dict with the key being the previous month
+    for g in group_standard_from[1:]:
+        group_dict[g[0]] = g
+    return group_dict
+
+
+def get_firm_size(group_dict, months_to_consider):
+    """
+        Size is average Derived GH/s. STUB
+    :param group:
+    :param months_to_consider:
+    :return:
+    """
+    for month in months_to_consider:
+        all_income_statements = float(group_dict[month][2])
+
+    return np.average(all_income_statements) # untested
+
+def get_firm_age(group_dict, months_to_consider):
+    """
+        Age is Number of months with income, and month of first full income
+    :param group_dict:
+    :param months_to_consider:
+    :return:
+        Number of full months with income, income of first month
+    """
+    return len(months_to_consider), months_to_consider[0]
+
+def get_final_data(group, months_to_consider):
+    """
+    Get the array of the final data
+
+    miner_address,
+    year_month(of start),
+    own-price elasticity between (year_month and year_month-1),
+    Firm size (avg gh/s for the months considered),
+    Firm age (number of full months of income),
+    Dollar_value_of_ghs in year_month -2,
+    Dollar_value_of_ghs in year_month -3,
+    :param months_to_consider: The months with data.
+    :param group: a tuple of tuples.
+
+    :return:
+    """
+    group_dict = {} #cast it as a dict with the key being the previous month
+    for g in group[1:]:
+        group_dict[g[0]] = g
+
+    first_month = months_to_consider[0]
+    all_months = get_all_months()
+    wallet_address = group[1][1]
+
+    for month in months_to_consider:
+        # miner_id, month, price elast
+        # month index
+        month_index = all_months.index(month)
+        prev_month = all_months[month_index-1]
+        prev_prev_month = all_months[month_index - 2]
+        prev_prev_prev_month =all_months[month_index - 3]
+        elasticity_dict = compute_GHs_elasticity(standard_form_group=group,full_months=months_to_consider)
+
+
+
+
+        # the month's are the keys.
+
+
+
+    return 0
+
+
+
+
+
 
 
 def main():
@@ -149,7 +253,7 @@ def main():
     for i in range(10):
         standard_form = groups_in_standard_from_dict[wallets[i]]
         months_to_consider = get_months_to_consider(standard_form)
-        wallet, elasticity = compute_GHs_elasticity(standard_form,months_to_consider)
+        res = get_final_data(standard_form,months_to_consider)
 
 
     print('fin')

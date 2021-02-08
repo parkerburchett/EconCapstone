@@ -72,12 +72,11 @@ def compute_GHs_elasticity(standard_form_group, full_months):
     :return: elasticity_dict : a dictionary where the key is the year_month and the value is the elastity score for that
             month and teh previous. or Unknown otherwise.
     """
-    if len(full_months < 4):
-        print(standard_form_group)
+    if len(full_months) < 4:
         res = input('this wallet was bad 3 or less months with data. press any key to continue')
         return
 
-    elif len(full_months == 4):
+    elif len(full_months) == 4:
         # you only get a single elasticy for the 3rd element.
         group_dict = {}
         for g in standard_form_group[1:]:
@@ -118,10 +117,12 @@ def compute_GHs_elasticity(standard_form_group, full_months):
             derived_monthly_miner_ghs.append(float(group_dict[month][8]))
             derived_USD_value_of_ghs.append(float(group_dict[month][7]))
 
-        elasticity_dict  ={} # key is month_year: elasticity for that month with prev month.
+        elasticity_dict ={} # key is month_year: elasticity for that month with prev month.
 
         ## If you only have 4 montsh, 1,2,3,4 you will only get an elastiticy for between month 2,3 THis is stored in month 3
-        for i in range(start=1, stop=len(full_months) - 1): # untested
+
+        last_index = len(full_months) - 1
+        for i in range(1, last_index): # untested
             cur_hashrate = derived_monthly_miner_ghs[i]
             prev_hashrate =  derived_monthly_miner_ghs[i-1]
             change_hashrate = percent_change(current=cur_hashrate,previous=prev_hashrate)
@@ -134,7 +135,7 @@ def compute_GHs_elasticity(standard_form_group, full_months):
 
             month = full_months[i]
             elasticity_dict[month] = elasticity # assign the elasticity score to the proper month.
-            elasticity_dict[full_months[1]] = 'Unknown'
+            elasticity_dict[full_months[0]] = 'Unknown'
     return elasticity_dict
 
 
@@ -146,12 +147,20 @@ def get_months_to_consider(standard_form_group):
     :return: A list of months that will be used as keys to get the income statements you need.
     """
     all_months = get_all_months()
+    months_no_income = 0
+    for i in range(1,len(standard_form_group)-1):
+        if standard_form_group[i][2] == '0': # miner_monthly_income col
+            months_no_income+=1
+
+    if months_no_income == 57: # number might be wrong
+        print('this group has no income')
+        return [] # empty list since you look at no
+
 
     first_month_with_income = None
     start_index = 0
     for i in range(1,len(standard_form_group)-1):
         if standard_form_group[i][2] != '0': # miner_monthly_income col
-            print(standard_form_group[i])
             first_month_with_income = all_months[i]#2018-6
             start_index =i
             break
@@ -166,13 +175,11 @@ def get_months_to_consider(standard_form_group):
     months_to_consider = all_months[start_index:end_index]
     return months_to_consider
 
-
 def cast_group_tuple_as_dict(group_standard_from):
     group_dict = {}  # cast it as a dict with the key being the previous month
     for g in group_standard_from[1:]:
         group_dict[g[0]] = g
     return group_dict
-
 
 def get_firm_size(group_dict, months_to_consider):
     """
@@ -199,7 +206,6 @@ def get_firm_age(group_dict, months_to_consider):
 def get_final_data(group, months_to_consider):
     """
     Get the array of the final data
-
     miner_address,
     year_month(of start),
     own-price elasticity between (year_month and year_month-1),
@@ -212,6 +218,9 @@ def get_final_data(group, months_to_consider):
 
     :return:
     """
+    if len(months_to_consider) ==0:
+        return 'no records'
+
     group_dict = {} #cast it as a dict with the key being the previous month
     for g in group[1:]:
         group_dict[g[0]] = g
@@ -220,41 +229,51 @@ def get_final_data(group, months_to_consider):
     all_months = get_all_months()
     wallet_address = group[1][1]
 
-    for month in months_to_consider:
-        # miner_id, month, price elast
-        # month index
+    ## elasticity_dict is a single month off. it says 2018-08 is unknown when 2018-2018 shoul dhave a score since it is the second full month.
+    elasticity_dict = compute_GHs_elasticity(standard_form_group=group, full_months=months_to_consider) # untested
+    firm_size =  get_firm_size(group_dict,months_to_consider)
+    firm_age, firm_start = get_firm_age(group_dict, months_to_consider)
+    records_to_return = []
+    # key might be bad
+    for month in months_to_consider[1:-1]:
         month_index = all_months.index(month)
         prev_month = all_months[month_index-1]
-        prev_prev_month = all_months[month_index - 2]
-        prev_prev_prev_month =all_months[month_index - 3]
-        elasticity_dict = compute_GHs_elasticity(standard_form_group=group,full_months=months_to_consider)
+        prev_prev_month = all_months[month_index-2]
+        prev_prev_prev_month =all_months[month_index-3]
 
+        cur_month_elasticity = elasticity_dict[month]
 
+        month_record = (wallet_address,
+                        'Ethermine',
+                        firm_start,
+                        firm_size,
+                        firm_age,
+                        month,
+                        cur_month_elasticity,
+                        float(group_dict[prev_prev_month][7]), # t-2
+                        float(group_dict[prev_prev_prev_month][7])# t-3
+                        )
 
+        records_to_return.append(month_record)
 
-        # the month's are the keys.
-
-
-
-    return 0
-
-
-
-
+    return records_to_return
 
 
 
 def main():
 
-
     groups_in_standard_from_dict = add_zeros.get_sample_data_standard_from(5)
     wallets = list(groups_in_standard_from_dict.keys())
-
-    for i in range(10):
-        standard_form = groups_in_standard_from_dict[wallets[i]]
-        months_to_consider = get_months_to_consider(standard_form)
-        res = get_final_data(standard_form,months_to_consider)
-
+    with open(r'C:\Users\parke\Documents\GitHub\EconCapstone\utils\final_data_out.csv','w') as out:
+        for i in range(10):
+            standard_form = groups_in_standard_from_dict[wallets[i]]
+            #
+            months_to_consider = get_months_to_consider(standard_form)
+            # check months to consider to make sure that the months ar egood.
+            # catch for wallets with no data eb *6b0
+            to_write = get_final_data(standard_form,months_to_consider)
+            for r in to_write:
+                out.write(str(r) +'\n')
 
     print('fin')
 

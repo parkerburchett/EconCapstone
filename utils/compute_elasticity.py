@@ -281,7 +281,7 @@ def get_firm_size(group_dict, months_with_elasticity):
     for month in months_with_elasticity:
         all_income_statements = float(group_dict[month][2])
 
-    return np.average(all_income_statements) # untested
+    return float(np.average(all_income_statements)) # untested
 
 
 def get_firm_age(full_months):
@@ -374,7 +374,7 @@ def refactored_get_final_row(standard_form_group):
 
     :param standard_form_group:
     :return: results[] array of array in the form
-    'wallet_address, pool_name, firm_first_full_month, firm_size, firm_age, month, GHs_elasticity, prev_month_GHs_value, prev_prev_month_GHs_value'
+    'wallet_address, pool_name, firm_first_full_month, firm_size, firm_age, month, eth_earned_this_month, GHs_elasticity, prev_month_GHs_value, prev_prev_month_GHs_value'
     """
     group_dict = cast_standard_form_group_as_dict(standard_form_group)
     full_months = get_full_months(standard_form_group)
@@ -390,6 +390,7 @@ def refactored_get_final_row(standard_form_group):
     results=[]
     for month in months_with_elasticity:
         cur_elasticity = get_elasticity_for_month(month, ghs_value_dict, miner_ghs_dict)
+        eth_earned_this_month = float(group_dict[month][2])
         prev2_month = get_previous_month(month)
         prev3_month = get_previous_month(prev2_month)
         a_row = (wallet_address,
@@ -398,25 +399,27 @@ def refactored_get_final_row(standard_form_group):
                  firm_size,
                  firm_age,
                  month,
+                 eth_earned_this_month,
                  cur_elasticity,
                  ghs_value_dict[prev2_month],
                  ghs_value_dict[prev3_month])
-        results.append(copy.deepcopy(a_row))
+        deep_copy_row_a = copy.deepcopy(a_row)
+        results.append(deep_copy_row_a)
 
     return results
 
 
 
-
+# you can refactor this a bit so that it will be marginally faster since it is
+# recreating a bunch of things that are really constants and don't need to be derived each pass through
 def main():
-
-
+    #groups_in_standard_from_dict = add_zeros.get_sample_data_standard_from(5)
     groups_in_standard_from_dict = add_zeros.get_data_into_standard_form()
     wallets = list(groups_in_standard_from_dict.keys())
     with open(r'C:\Users\parke\Documents\GitHub\EconCapstone\utils\final_data_out.csv','w', newline='', encoding='utf-8') as out:
-        out.write('wallet_address, pool_name, firm_first_full_month, firm_size, firm_age, month, GHs_elasticity, prev_month_GHs_value, prev_prev_month_GHs_value\n')
+        out.write('wallet_address, pool_name, firm_first_full_month, firm_size, firm_age, month, eth_earned_this_month, GHs_elasticity, prev_month_GHs_value, prev_prev_month_GHs_value\n')
         writer = csv.writer(out)
-        a =0
+        a = 0
         for wallet in wallets:
             standard_form_group = groups_in_standard_from_dict[wallet]
             records_for_wallet_i = refactored_get_final_row(standard_form_group)
@@ -424,12 +427,6 @@ def main():
             a+=1
             if a % 10000 == 0:
                 print('wrote {} wallets'.format(a))
-
-
-
-
-
-
     print('fin')
 
 

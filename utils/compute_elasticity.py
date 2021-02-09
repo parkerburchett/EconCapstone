@@ -4,6 +4,7 @@
 import json
 import numpy as np
 import csv
+import copy # unclear fi you need to deep copy the values.
 import add_zero_records_to_miners as add_zeros
 
 outline="""
@@ -31,7 +32,7 @@ def get_all_months():
             '2019-07', '2019-08', '2019-09', '2019-10', '2019-11', '2019-12', '2020-01', '2020-02', '2020-03', '2020-04',
             '2020-05', '2020-06', '2020-07', '2020-08', '2020-09', '2020-10', '2020-11', '2020-12']
 
-
+# unused
 def load_standard_form_json():
     """
         Read in the data from the json file. This is slower than just runnind add_zero_records_to_miners.main()
@@ -43,24 +44,40 @@ def load_standard_form_json():
         return groups_in_standard_from
 
 
-def percent_change(current,previous):
+#OLD
+def get_months_to_consider(standard_form_group):
     """
-        Get the percent change  (rounded to 6 decimal places) between first and second.
-        This can be negative or positive
-        source: https://stackoverflow.com/questions/30926840/how-to-check-change-between-two-values-in-percent
+            You only want the months between (exclusive) their first and last income.
 
-    :param current: float
-    :param previous: float
-    :return: the % increase or decrase.
+    :param standard_form_group: A tuple of miner monthly income statements tuples
+    :return: A list of months that will be used as keys to get the income statements you need.
     """
-    if current == previous:
-        return 0
-    try:
-        return ((current - previous) / previous) * 100.0
-    except ZeroDivisionError:
-        return float('inf')
+    all_months = get_all_months()
+    months_with_income = 0
+    for i in range(1,len(standard_form_group)-1):
+        if standard_form_group[i][2] != '0':
+            months_with_income+=1
+
+    first_month_with_income = None
+    start_index = 0
+    for i in range(1,len(standard_form_group)-1):
+        if standard_form_group[i][2] != '0': # miner_monthly_income col
+            first_month_with_income = all_months[i] #2018-6
+            start_index =i
+            break
+
+    end_index =59 # should be 58
+    # walk backwards through standard_form_group
+    for j in range(len(standard_form_group)-2,1,-1):
+        if standard_form_group[j][2] != '0':  # miner_monthly_income
+            last_month_with_data = all_months[j]
+            end_index =j # correct
+            break
+    months_to_consider = all_months[start_index+1:end_index-1]
+    return months_to_consider
 
 
+# old
 def compute_GHs_elasticity(standard_form_group, full_months):
     """
         For the months that we have data (full_months) compute the % change in monthly GHs and price of GHs
@@ -137,155 +154,7 @@ def compute_GHs_elasticity(standard_form_group, full_months):
             elasticity_dict[full_months[0]] = 'Unknown'
     return elasticity_dict
 
-
-def has_income(month_entry):
-    """
-
-        Return True it this month has ETH income,
-        Else Return false
-        A row inside of standard_form_group
-    """
-    return month_entry[2] != '0'
-
-
-def get_months_between_inclusive(start_month, end_month):
-    """
-        Get a list of the months between start_month and end month. inclusive
-
-    :param start_month:
-    :param end_month:
-    :return:
-    """
-    all_months =get_all_months()
-    start_index = all_months.index(start_month)
-    end_index = all_months.index(end_month)
-    months_between = all_months[start_index:end_index+1]
-    return months_between
-
-
-def refactored_get_months_with_elasticity(standard_form_group):
-    """
-        Get the months with elasticity scores.
-
-    :param standard_form_group:
-    :return: A list of months that will have elasticity scores. This is defined as Months where Income = lose the first two and the last.
-    """
-    months_with_income = []
-    for row in standard_form_group[1:]:
-        if has_income(row):
-            months_with_income.append(row[0])
-    if len(months_with_income) == 0:
-        return []
-
-    first_month = months_with_income[0]
-    last_month = months_with_income[-1]
-
-    months_between_first_and_last = get_months_between_inclusive(first_month,last_month)
-    if len(months_between_first_and_last) <=3:
-        return []
-    else:
-        months_with_elasticity = months_between_first_and_last[2:-1] # lost the fist 2 and the last month since they are incomplete
-        return months_with_elasticity
-
-
-def get_previous_month(month):
-    """
-
-    :param month:
-    :return: The previous month to this month
-    """
-    all_months =  get_all_months()
-    i  = all_months.index(month)
-    try:
-        return all_months[i-1]
-    except:
-        return all_months[i]
-
-def get_elasticity_for_month(month, standard_form_dict):
-    """
-        Get the GH/s elasticity score for this month based on a Standard_form_dict for this month.
-        You pass this a list of months with elasticity
-
-    :param month: the month you are computing the elasticity between this and the previous month
-    :param standard_form_dict:
-    :return: A float representing the GH/s price elasticity score for this month.
-    """
-    prev_month = get_previous_month(month)
-
-    cur_hashrate = standard_form_dict[month][8]
-    prev_hashrate = standard_form_dict[prev_month][8]
-    change_hashrate = percent_change(current=cur_hashrate, previous=prev_hashrate)
-
-    cur_price = standard_form_dict[month][7]
-    prev_price = standard_form_dict[prev_month][7]
-    change_price = percent_change(current=cur_price, previous=prev_price)
-
-    elasticity = change_hashrate / change_price
-    return elasticity
-
-
-
-
-def get_months_to_consider(standard_form_group):
-    """
-            You only want the months between (exclusive) their first and last income.
-
-    :param standard_form_group: A tuple of miner monthly income statements tuples
-    :return: A list of months that will be used as keys to get the income statements you need.
-    """
-    all_months = get_all_months()
-    months_with_income = 0
-    for i in range(1,len(standard_form_group)-1):
-        if standard_form_group[i][2] != '0':
-            months_with_income+=1
-
-    first_month_with_income = None
-    start_index = 0
-    for i in range(1,len(standard_form_group)-1):
-        if standard_form_group[i][2] != '0': # miner_monthly_income col
-            first_month_with_income = all_months[i] #2018-6
-            start_index =i
-            break
-
-    end_index =59 # should be 58
-    # walk backwards through standard_form_group
-    for j in range(len(standard_form_group)-2,1,-1):
-        if standard_form_group[j][2] != '0':  # miner_monthly_income
-            last_month_with_data = all_months[j]
-            end_index =j # correct
-            break
-    months_to_consider = all_months[start_index+1:end_index-1]
-    return months_to_consider
-
-def cast_standard_form_group_as_dict(group_standard_from):
-    group_dict = {}  # cast it as a dict with the key being the previous month
-    for g in group_standard_from[1:]:
-        group_dict[g[0]] = g
-    return group_dict
-
-def get_firm_size(group_dict, months_with_elasticity):
-    """
-        Size is average Derived GH/s.
-    :param group:
-    :param months_to_consider:
-    :return:
-    """
-
-    for month in months_with_elasticity:
-        all_income_statements = float(group_dict[month][2])
-
-    return np.average(all_income_statements) # untested
-
-def get_firm_age(group_dict, months_to_consider):
-    """
-        Age is Number of months with income, and month of first full income
-    :param group_dict:
-    :param months_to_consider:
-    :return:
-        Number of full months with income, income of first month
-    """
-    return len(months_to_consider), months_to_consider[0]
-
+# old bad
 def get_final_data(group, months_to_consider):
     """
     Get the array of the final data
@@ -341,36 +210,221 @@ def get_final_data(group, months_to_consider):
 
     return records_to_return
 
-def refactored_get_final_row(group_dict, months_with_elasticity):
+################# utils #################
+
+def percent_change(current,previous):
+    """
+        Get the percent change  (rounded to 6 decimal places) between first and second.
+        This can be negative or positive
+        source: https://stackoverflow.com/questions/30926840/how-to-check-change-between-two-values-in-percent
+
+    :param current: float
+    :param previous: float
+    :return: the % increase or decrase.
+    """
+    if current == previous:
+        return 0
+    try:
+        return ((current - previous) / previous) * 100.0
+    except ZeroDivisionError:
+        return float('inf')
+
+
+def get_previous_month(month):
+    """
+        Return as a string the previous month
+
+    :param month:
+    :return: The previous month to this month
+    """
+    all_months =  get_all_months()
+    i  = all_months.index(month)
+    try:
+        return all_months[i-1]
+    except:
+        return all_months[i]
+
+
+def has_income(month_entry):
     """
 
-    :param group_dict:
-    :param months_with_elasticity:
+        Return True it this month has ETH income,
+        Else Return false
+        A row inside of standard_form_group
+    """
+    return month_entry[2] != '0'
+
+
+def get_months_between_inclusive(start_month, end_month):
+    """
+        Get a list of the months between start_month and end month. inclusive
+
+    :param start_month:
+    :param end_month:
     :return:
     """
-    return None
+    all_months =get_all_months()
+    start_index = all_months.index(start_month)
+    end_index = all_months.index(end_month)
+    months_between = all_months[start_index:end_index+1]
+    return months_between
 
 
+def get_firm_size(group_dict, months_with_elasticity):
+    """
+        Size is average Derived GH/s.
+    :param group:
+    :param months_to_consider:
+    :return:
+    """
+
+    for month in months_with_elasticity:
+        all_income_statements = float(group_dict[month][2])
+
+    return np.average(all_income_statements) # untested
 
 
-# figure out how many records should be in the first 10 wallets.
+def get_firm_age(full_months):
+    """
+        Age is Number of months with income, and month of first full income
+    :param group_dict:
+    :param months_to_consider:
+    :return: Number of full months with income, date of month with first full income.
+        Number of full months with income, income of first month
+    """
+    return len(full_months), full_months[0]
+
+
+def cast_standard_form_group_as_dict(group_standard_from):
+    group_dict = {}  # cast it as a dict with the key being the previous month
+    for g in group_standard_from[1:]:
+        group_dict[g[0]] = g
+    return group_dict
+
+
+def create_ghs_value_dict(group_dict):
+    ghs_value_dict = {}
+    months = group_dict.keys()
+    for month in months:
+        ghs_value_dict[month] = float(group_dict[month][7]) # not sure if right index
+    return ghs_value_dict
+
+
+def create_miner_ghs_dict(group_dict):
+    miner_ghs_dict = {}
+    months = list(group_dict.keys())
+    for month in months:
+        miner_ghs_dict[month] = float(group_dict[month][8]) # not sure if right index
+    return miner_ghs_dict
+
+
+def get_elasticity_for_month(month, ghs_value_dict, miner_ghs_dict):
+    """
+        Get the GH/s elasticity score for this month based on a Standard_form_dict for this month.
+        You pass this a list of months with elasticity
+
+    :param month: the month you are computing the elasticity between this and the previous month
+    :param standard_form_dict:
+    :return: A float representing the GH/s price elasticity score for this month.
+    """
+    prev_month = get_previous_month(month)
+
+    cur_hashrate = miner_ghs_dict[month]
+    prev_hashrate = miner_ghs_dict[prev_month]
+    change_hashrate = percent_change(current=cur_hashrate, previous=prev_hashrate)
+
+    cur_GHS_value = ghs_value_dict[month]
+    prev_GHS_value = ghs_value_dict[prev_month]
+    change_GHS_value = percent_change(current=cur_GHS_value, previous=prev_GHS_value)
+
+    elasticity = change_hashrate / change_GHS_value
+    return elasticity
+
+
+def get_full_months(standard_form_group):
+    """
+        Returns a list of months will full entire month income
+
+    :param standard_form_group:
+    :return: A list of months that will have an entire month of income
+    """
+    months_with_income = []
+    for row in standard_form_group[1:]:
+        if has_income(row):
+            months_with_income.append(row[0])
+    if len(months_with_income) == 0:
+        return []
+
+    first_month = months_with_income[0]
+    last_month = months_with_income[-1]
+
+    months_between_first_and_last = get_months_between_inclusive(first_month,last_month)
+    if len(months_between_first_and_last) <=2:
+        return []
+    else:
+        full_months = months_between_first_and_last[1:-1] # strip the first and last since they could be partial months.
+        return full_months
+
+
+################# utils #################
+
+def refactored_get_final_row(standard_form_group):
+    """
+        Pass this a standard_form_group an d it will return a list of the final rows to write to the file
+
+    :param standard_form_group:
+    :return: results[] array of array in the form
+    'wallet_address, pool_name, firm_first_full_month, firm_size, firm_age, month, GHs_elasticity, prev_month_GHs_value, prev_prev_month_GHs_value'
+    """
+    group_dict = cast_standard_form_group_as_dict(standard_form_group)
+    full_months = get_full_months(standard_form_group)
+    wallet_address = group_dict['2020-10'][1] # just the wallet address, all are the same you can pick any month
+    months_with_elasticity = full_months[1:-1]  # should be two month less.
+    if len(months_with_elasticity) == 0:
+        return []
+    ghs_value_dict = create_ghs_value_dict(group_dict)
+    miner_ghs_dict = create_miner_ghs_dict(group_dict)
+    firm_size = get_firm_size(group_dict, full_months)
+    firm_age, firm_start = get_firm_age(full_months)
+    pool_name= 'Ethermine'
+    results=[]
+    for month in months_with_elasticity:
+        cur_elasticity = get_elasticity_for_month(month, ghs_value_dict, miner_ghs_dict)
+        prev2_month = get_previous_month(month)
+        prev3_month = get_previous_month(prev2_month)
+        a_row = (wallet_address,
+                 pool_name,
+                 firm_start,
+                 firm_size,
+                 firm_age,
+                 month,
+                 cur_elasticity,
+                 ghs_value_dict[prev2_month],
+                 ghs_value_dict[prev3_month])
+        results.append(copy.deepcopy(a_row))
+
+    return results
+
+
 
 
 def main():
 
 
-    groups_in_standard_from_dict = add_zeros.get_sample_data_standard_from(5)
+    groups_in_standard_from_dict = add_zeros.get_data_into_standard_form()
     wallets = list(groups_in_standard_from_dict.keys())
-    with open(r'C:\Users\parke\Documents\GitHub\EconCapstone\utils\final_data_out.csv','w') as out:
+    with open(r'C:\Users\parke\Documents\GitHub\EconCapstone\utils\final_data_out.csv','w', newline='', encoding='utf-8') as out:
         out.write('wallet_address, pool_name, firm_first_full_month, firm_size, firm_age, month, GHs_elasticity, prev_month_GHs_value, prev_prev_month_GHs_value\n')
         writer = csv.writer(out)
-        for i in range(10):
-            standard_form = groups_in_standard_from_dict[wallets[i]]
-            months_to_consider = refactored_get_months_with_elasticity(standard_form) # gives 2020-10 when should be 2020-11
-            if len(months_to_consider)!= 0:
-                to_write = get_final_data(standard_form, months_to_consider)
-                #to write is an tuple of tuples
-                writer.writerows(to_write)
+        a =0
+        for wallet in wallets:
+            standard_form_group = groups_in_standard_from_dict[wallet]
+            records_for_wallet_i = refactored_get_final_row(standard_form_group)
+            writer.writerows(records_for_wallet_i)
+            a+=1
+            if a % 10000 == 0:
+                print('wrote {} wallets'.format(a))
+
 
 
 

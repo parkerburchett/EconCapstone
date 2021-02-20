@@ -1,0 +1,25 @@
+DESCRIPTIVE STATS ON GH/S ELASTICITY
+count    2015807.000000
+mean          -0.199012
+std            2.534041
+min          -12.733029
+1%            -9.965620
+5%            -4.753566
+10%           -2.694308
+20%           -1.310151
+30%           -0.695808
+40%           -0.256522
+50%           -0.000000
+60%            0.280813
+70%            0.627474
+80%            1.182187
+90%            2.312518
+95%            3.583963
+99%            6.132506
+max            7.384563
+Name:  GHs_elasticity, dtype: object
+median -0.0
+Name:  firm_size Average :1.303446 std_dev: 14.902812
+Name:  firm_age Average :22.061918 std_dev: 10.830613
+Name:  eth_earned_this_month Average :2.055611 std_dev: 25.461683
+Name:  GHs_elasticity Average :-0.199012 std_dev: 2.534041

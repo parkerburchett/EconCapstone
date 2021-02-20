@@ -17,3 +17,9 @@ def main():
 
 
 main()
+
+
+# cut of the top and bot 1, 5% then see the percentiles.
+# do this before the estimation.
+# put the top and bot % off in the data section.
+#

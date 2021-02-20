@@ -1,0 +1,34 @@
+import statsmodels.api as sm
+import numpy as np
+import pandas as pd
+
+#https://www.statsmodels.org/stable/generated/statsmodels.regression.linear_model.OLS.html
+# source: https://www.datarobot.com/blog/multiple-regression-using-statsmodels/
+
+
+
+def main():
+    df = pd.read_csv(r"C:\Users\parke\Documents\GitHub\EconCapstone\utils\CleanFinalDataNoOutliers.csv")
+
+def sample_data():
+    df = pd.read_csv(r'C:\Users\parke\Documents\GitHub\EconCapstone\utils\sample_health_data.csv')
+
+    x1 = 'DeathRatePer1000Residents'
+    x2 = 'doctor availability per 100000'
+    x3 = 'hospital availability per 100000'
+    x4 = 'annual per capita income'
+    x5 = 'population density per square mile'
+    header = [x1,x2,x3,x4,x5]
+    df.columns = header
+    pd.set_option('display.max_columns', None)
+    #print(df.head())
+    X = df[['annual per capita income', 'doctor availability per 100000']]
+    y = df['DeathRatePer1000Residents']
+
+    est = sm.OLS(y, X).fit()
+    print(est.summary())
+
+sample_data()
+
+
+

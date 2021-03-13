@@ -12,15 +12,23 @@ import pandas as pd
 def main():
     df = pd.read_csv(r"C:\Users\parke\Documents\GitHub\EconCapstone\utils\CleanFinalDataNoOutliers.csv")
     print(df.columns)
-    # might need to exclude start date since it is not an number.
-    dependent_variables = df[[' firm_age',' prev_month_GHs_value',' prev_prev_month_GHs_value']]
-
-    independent_variable = df[' eth_earned_this_month']
+    dependent_variables = df[[' firm_age',' firm_size',' prev_month_GHs_value', ' prev_prev_month_GHs_value']]
+    independent_variable = df[' GHs_elasticity']
 
     est = sm.OLS(independent_variable,dependent_variables).fit()
+    print(type(est))
+
     print(est.summary())
+    print(est.params)
+    for i in range(4):
+        print(est.pvalues[i])
 
+def calc_corrilations():
+    print(df.columns)
+    # might need to exclude start date since it is not an number.
+    pd.set_option('display.max_columns', None)
 
+    df.corr(method='pearson').to_csv('corrilation_result.csv')
 
 def sample_data():
     df = pd.read_csv(r'C:\Users\parke\Documents\GitHub\EconCapstone\utils\sample_health_data.csv')
@@ -32,7 +40,7 @@ def sample_data():
     x5 = 'population density per square mile'
     header = [x1,x2,x3,x4,x5]
     df.columns = header
-    #pd.set_option('display.max_columns', None)
+    #
     #print(df.head())
     X = df[['population density per square mile', 'doctor availability per 100000']]
     y = df['DeathRatePer1000Residents']

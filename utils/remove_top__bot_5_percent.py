@@ -4,6 +4,8 @@ import numpy as np
 def main():
     df = pd.read_csv(r"C:\Users\parke\Documents\GitHub\EconCapstone\utils\clean_final_data_out.csv")
     full_data = df.to_numpy()
+
+    print(df[' GHs_elasticity'].describe())
     header = df.columns
     print(header)
     top_5_percent = 7.384592
